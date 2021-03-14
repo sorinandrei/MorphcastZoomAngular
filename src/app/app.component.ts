@@ -20,7 +20,7 @@ export class AppComponent implements OnInit {
   apiKey = 'rZmqWjExSze-48_tCZVwYw'
   meetingNumber = ''
   role = 0
-  leaveUrl = 'http://localhost:4200'
+  leaveUrl = 'https://sorinandrei.github.io/ZoomAngularTest'
   userName = 'Angular'
   userEmail = ''
   passWord = ''
