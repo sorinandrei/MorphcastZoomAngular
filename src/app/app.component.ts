@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { DOCUMENT } from '@angular/common';
 
 import { ZoomMtg } from '@zoomus/websdk';
+import { ActivatedRoute } from '@angular/router';
 
 ZoomMtg.preLoadWasm();
 ZoomMtg.prepareJssdk();
@@ -15,21 +16,27 @@ ZoomMtg.prepareJssdk();
 export class AppComponent implements OnInit {
 
   // setup your signature endpoint here: https://github.com/zoom/websdk-sample-signature-node.js
-  signatureEndpoint = ''
-  apiKey = ''
-  meetingNumber = '123456789'
+  signatureEndpoint = 'https://benchmark-signature.herokuapp.com'
+  apiKey = 'rZmqWjExSze-48_tCZVwYw'
+  meetingNumber = ''
   role = 0
   leaveUrl = 'http://localhost:4200'
   userName = 'Angular'
   userEmail = ''
   passWord = ''
 
-  constructor(public httpClient: HttpClient, @Inject(DOCUMENT) document) {
-
+  constructor(
+    public httpClient: HttpClient, 
+    @Inject(DOCUMENT) document,
+    private route: ActivatedRoute
+  ) {
+    this.route.queryParams.subscribe(params => {
+      let meetingId = params['meetingId'];
+      this.meetingNumber = meetingId
+  });
   }
 
   ngOnInit() {
-
   }
 
   getSignature() {

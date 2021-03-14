@@ -3,6 +3,7 @@ import { NgModule } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http';
 
 import { AppComponent } from './app.component';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 
 @NgModule({
   declarations: [
@@ -10,7 +11,12 @@ import { AppComponent } from './app.component';
   ],
   imports: [
     BrowserModule,
-    HttpClientModule
+    HttpClientModule,
+    RouterModule.forRoot([{
+      path: '',
+      component: AppComponent
+  },
+]),   
   ],
   providers: [],
   bootstrap: [AppComponent]
