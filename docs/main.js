@@ -62,6 +62,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+_zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].setZoomJSLib('https://sorinandrei.github.io/ZoomAngularTest/node/@zoomus/websdk/dist/lib', '/av');
 _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].preLoadWasm();
 _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].prepareJssdk();
 class AppComponent {
