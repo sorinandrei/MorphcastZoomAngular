@@ -25,7 +25,7 @@
               {
                 "glob": "**/*",
                 "input": "./node_modules/@zoomus/websdk/dist/lib/",
-                "output": "./node_modules/@zoomus/websdk/dist/lib/"
+                "output": "./node/@zoomus/websdk/dist/lib/"
               }
             ],
             "styles": [
