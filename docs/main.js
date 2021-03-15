@@ -7,7 +7,7 @@
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(/*! C:\Work\websdk-sample-angular\src\main.ts */"zUnb");
+module.exports = __webpack_require__(/*! C:\Work\websdk-morph-zoom\MorphcastZoomAngular\src\main.ts */"zUnb");
 
 
 /***/ }),
@@ -69,12 +69,14 @@ class AppComponent {
     constructor(httpClient, document, route) {
         this.httpClient = httpClient;
         this.route = route;
+        this.loader = CY.loader();
+        this.oppenedConnection = false;
         // setup your signature endpoint here: https://github.com/zoom/websdk-sample-signature-node.js
         this.signatureEndpoint = 'https://benchmark-signature.herokuapp.com';
         this.apiKey = 'rZmqWjExSze-48_tCZVwYw';
         this.meetingNumber = '';
         this.role = 0;
-        this.leaveUrl = 'http://localhost:4200';
+        this.leaveUrl = 'https://sorinandrei.github.io/ZoomAngularTest';
         this.userName = 'Angular';
         this.userEmail = '';
         this.passWord = '';
@@ -84,6 +86,11 @@ class AppComponent {
         });
     }
     ngOnInit() {
+        this.loadMorphcast();
+        this.connectToServerAndStartSendingDataGuest(this.meetingNumber, "Guest_" + this.getRandomID(), "Guest_" + this.getRandomID() + "@gmail.com");
+    }
+    getRandomID() {
+        return Math.random().toString(36).substr(2, 9);
     }
     getSignature() {
         this.httpClient.post(this.signatureEndpoint, {
@@ -128,9 +135,109 @@ class AppComponent {
             }
         });
     }
+    loadMorphcast() {
+        this.loader.licenseKey("39d24a4191518dde3e4fbed5ec690d6fc6a22dd3507d");
+        this.loader.addModule(CY.modules().FACE_DETECTOR.name, { maxInputFrameSize: 320, multiFace: true });
+        this.loader.addModule(CY.modules().FACE_ATTENTION.name, { smoothness: 0.99 });
+        this.loader.addModule(CY.modules().FACE_EMOTION.name, { smoothness: 0.99, enableBalancer: false });
+        this.loader.addModule(CY.modules().FACE_AROUSAL_VALENCE.name, { smoothness: 0.8 });
+        this.loader.addModule(CY.modules().FACE_AGE.name);
+        this.loader.powerSave(1);
+        this.loader.maxInputFrameSize(320);
+        this.loader.load().then(({ start, stop, terminate }) => {
+            this.startSDK = start;
+            this.stopSDK = stop;
+            this.terminateSDK = terminate;
+        });
+    }
+    connectToServerAndStartSendingDataGuest(meetingNumber, name, email) {
+        this.user = {};
+        this.user.name = name;
+        this.user.user_id = email;
+        this.ws = new WebSocket('wss://guarded-garden-95047.herokuapp.com');
+        this.ws.onopen = () => {
+            console.log('WebSocket Client Connected');
+            const data = {
+                user_id: this.user.user_id,
+                meetingNumber: meetingNumber
+            };
+            this.ws.send(JSON.stringify(data));
+            this.oppenedConnection = true;
+        };
+        this.ws.onclose = () => {
+            this.oppenedConnection = false;
+        };
+        this.ws.onmessage = function (message) {
+            console.log(message);
+            console.log(message.data);
+            console.log(JSON.parse(message.data));
+        };
+        window.addEventListener(CY.modules().FACE_DETECTOR.eventName, (evt) => {
+            console.log('Face detector result', evt.detail);
+            const data = {
+                user: this.user.name,
+                eventType: evt.detail.type,
+                eventValue: evt.detail.totalFaces
+            };
+            if (this.oppenedConnection) {
+                this.ws.send(JSON.stringify(data));
+            }
+        });
+        window.addEventListener(CY.modules().FACE_AGE.eventName, (evt) => {
+            console.log('Age result', evt.detail);
+            let data = new EventData();
+            data.user = this.user.name;
+            data.eventType = evt.detail.type;
+            data.eventValue = evt.detail.output.numericAge;
+            if (this.oppenedConnection) {
+                this.ws.send(JSON.stringify(data));
+            }
+        });
+        window.addEventListener(CY.modules().FACE_EMOTION.eventName, (evt) => {
+            console.log('Emotion result', evt.detail);
+            let data = new EventData();
+            data.user = this.user.name;
+            data.eventType = evt.detail.type;
+            data.eventValue = evt.detail.output.dominantEmotion;
+            if (this.oppenedConnection) {
+                this.ws.send(JSON.stringify(data));
+            }
+        });
+        window.addEventListener(CY.modules().FACE_ATTENTION.eventName, (evt) => {
+            console.log('Face attention result', evt.detail);
+            let data = new EventData();
+            data.user = this.user.name;
+            data.eventType = evt.detail.type;
+            data.eventValue = evt.detail.output.attention;
+            if (this.oppenedConnection) {
+                this.ws.send(JSON.stringify(data));
+            }
+        });
+        window.addEventListener(CY.modules().FACE_AROUSAL_VALENCE.eventName, (evt) => {
+            console.log('Face arousal valence result', evt.detail, evt.detail.output.arousalvalence.arousal > 0);
+            if (evt.detail.output.arousalvalence.arousal > 0) {
+                let data = new EventData();
+                data.user = this.user.name;
+                data.eventType = "face_arousal";
+                data.eventValue = evt.detail.output.arousalvalence.arousal;
+                if (this.oppenedConnection) {
+                    this.ws.send(JSON.stringify(data));
+                }
+            }
+            if (evt.detail.output.arousalvalence.valence > 0) {
+                let data = new EventData();
+                data.user = this.user.name;
+                data.eventType = "face_valence";
+                data.eventValue = evt.detail.output.arousalvalence.valence;
+                if (this.oppenedConnection) {
+                    this.ws.send(JSON.stringify(data));
+                }
+            }
+        });
+    }
 }
 AppComponent.ɵfac = function AppComponent_Factory(t) { return new (t || AppComponent)(_angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_common_http__WEBPACK_IMPORTED_MODULE_3__["HttpClient"]), _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_common__WEBPACK_IMPORTED_MODULE_1__["DOCUMENT"]), _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_router__WEBPACK_IMPORTED_MODULE_4__["ActivatedRoute"])); };
-AppComponent.ɵcmp = _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdefineComponent"]({ type: AppComponent, selectors: [["app-root"]], decls: 5, vars: 1, consts: [[3, "click"]], template: function AppComponent_Template(rf, ctx) { if (rf & 1) {
+AppComponent.ɵcmp = _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdefineComponent"]({ type: AppComponent, selectors: [["app-root"]], decls: 9, vars: 1, consts: [[3, "click"]], template: function AppComponent_Template(rf, ctx) { if (rf & 1) {
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](0, "main");
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](1, "h1");
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](2, "Zoom WebSDK Sample Angular");
@@ -138,6 +245,14 @@ AppComponent.ɵcmp = _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdefineCompo
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](3, "button", 0);
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵlistener"]("click", function AppComponent_Template_button_click_3_listener() { return ctx.getSignature(); });
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](4);
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](5, "button", 0);
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵlistener"]("click", function AppComponent_Template_button_click_5_listener() { return ctx.startSDK(); });
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](6, "Start SDK ");
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](7, "button", 0);
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵlistener"]("click", function AppComponent_Template_button_click_7_listener() { return ctx.stopSDK(); });
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](8, "Stop SDK ");
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
     } if (rf & 2) {
@@ -155,6 +270,8 @@ AppComponent.ɵcmp = _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdefineCompo
                 type: _angular_core__WEBPACK_IMPORTED_MODULE_0__["Inject"],
                 args: [_angular_common__WEBPACK_IMPORTED_MODULE_1__["DOCUMENT"]]
             }] }, { type: _angular_router__WEBPACK_IMPORTED_MODULE_4__["ActivatedRoute"] }]; }, null); })();
+class EventData {
+}
 
 
 /***/ }),
