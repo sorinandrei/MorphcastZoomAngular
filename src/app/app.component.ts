@@ -54,7 +54,7 @@ export class AppComponent implements OnInit {
   private getRandomID(): string{
     return Math.random().toString(36).substr(2, 9);
   }
-  
+
   getSignature() {
     this.httpClient.post(this.signatureEndpoint, {
 	    meetingNumber: this.meetingNumber,
@@ -74,6 +74,14 @@ export class AppComponent implements OnInit {
   startMeeting(signature) {
 
     document.getElementById('zmmtg-root').style.display = 'block'
+    document.getElementById('startSDK').style.zIndex = "9";
+    document.getElementById('startSDK').style.position = "absolute";
+    document.getElementById('startSDK').style.right = "0px";
+    document.getElementById('startSDK').style.top = "0px";
+    document.getElementById('stopSDK').style.zIndex = "9";
+    document.getElementById('stopSDK').style.position = "absolute";
+    document.getElementById('stopSDK').style.right = "0px";
+    
 
     ZoomMtg.init({
       leaveUrl: this.leaveUrl,
