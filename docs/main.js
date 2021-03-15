@@ -83,6 +83,7 @@ class AppComponent {
         this.route.queryParams.subscribe(params => {
             this.meetingNumber = params['meetingId'];
             this.passWord = params['password'];
+            console.log(this.passWord);
         });
     }
     ngOnInit() {
