@@ -41,8 +41,8 @@ export class AppComponent implements OnInit {
     private route: ActivatedRoute
   ) {
     this.route.queryParams.subscribe(params => {
-      let meetingId = params['meetingId'];
-      this.meetingNumber = meetingId
+      this.meetingNumber = params['meetingId'];
+      this.passWord = params['password'];
   });
   }
 
