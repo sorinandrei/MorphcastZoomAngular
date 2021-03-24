@@ -54,8 +54,15 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _angular_common__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/common */ "ofXK");
 /* harmony import */ var _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @zoomus/websdk */ "3hj0");
 /* harmony import */ var _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _angular_common_http__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @angular/common/http */ "tk/3");
-/* harmony import */ var _angular_router__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @angular/router */ "tyNb");
+/* harmony import */ var rxjs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! rxjs */ "qCKp");
+/* harmony import */ var uuid__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! uuid */ "4USb");
+/* harmony import */ var rxjs_operators__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! rxjs/operators */ "kU1M");
+/* harmony import */ var _angular_common_http__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! @angular/common/http */ "tk/3");
+/* harmony import */ var _angular_router__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! @angular/router */ "tyNb");
+
+
+
+
 
 
 
@@ -81,14 +88,17 @@ class AppComponent {
         this.userEmail = '';
         this.passWord = '';
         this.route.queryParams.subscribe(params => {
-            this.meetingNumber = params['meetingId'];
+            console.log(params);
             this.passWord = params['password'];
-            console.log(this.passWord);
+            let meetingId = params['meetingId'];
+            if (meetingId && meetingId > 0) {
+                this.registerEventListener(meetingId, "Guest_" + this.getRandomID());
+            }
+            this.meetingNumber = meetingId;
         });
     }
     ngOnInit() {
         this.loadMorphcast();
-        this.connectToServerAndStartSendingDataGuest(this.meetingNumber, "Guest_" + this.getRandomID(), "Guest_" + this.getRandomID() + "@gmail.com");
     }
     getRandomID() {
         return Math.random().toString(36).substr(2, 9);
@@ -158,93 +168,52 @@ class AppComponent {
             this.terminateSDK = terminate;
         });
     }
-    connectToServerAndStartSendingDataGuest(meetingNumber, name, email) {
-        this.user = {};
-        this.user.name = name;
-        this.user.user_id = email;
-        this.ws = new WebSocket('wss://guarded-garden-95047.herokuapp.com');
-        this.ws.onopen = () => {
-            console.log('WebSocket Client Connected');
-            const data = {
-                user_id: this.user.user_id,
-                meetingNumber: meetingNumber
-            };
-            this.ws.send(JSON.stringify(data));
-            this.oppenedConnection = true;
-        };
-        this.ws.onclose = () => {
-            this.oppenedConnection = false;
-        };
-        this.ws.onmessage = function (message) {
-            console.log(message);
-            console.log(message.data);
-            console.log(JSON.parse(message.data));
-        };
-        window.addEventListener(CY.modules().FACE_DETECTOR.eventName, (evt) => {
-            console.log('Face detector result', evt.detail);
-            const data = {
-                user: this.user.name,
-                eventType: evt.detail.type,
-                eventValue: evt.detail.totalFaces
-            };
-            if (this.oppenedConnection) {
-                this.ws.send(JSON.stringify(data));
-            }
+    registerEventListener(meetingNumber, userName) {
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_DETECTOR.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+            let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.totalFaces);
+            this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
         });
-        window.addEventListener(CY.modules().FACE_AGE.eventName, (evt) => {
-            console.log('Age result', evt.detail);
-            let data = new EventData();
-            data.user = this.user.name;
-            data.eventType = evt.detail.type;
-            data.eventValue = evt.detail.output.numericAge;
-            if (this.oppenedConnection) {
-                this.ws.send(JSON.stringify(data));
-            }
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_AGE.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+            let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.numericAge);
+            this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
         });
-        window.addEventListener(CY.modules().FACE_EMOTION.eventName, (evt) => {
-            console.log('Emotion result', evt.detail);
-            let data = new EventData();
-            data.user = this.user.name;
-            data.eventType = evt.detail.type;
-            data.eventValue = evt.detail.output.dominantEmotion;
-            if (this.oppenedConnection) {
-                this.ws.send(JSON.stringify(data));
-            }
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_EMOTION.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+            let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.dominantEmotion);
+            this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
         });
-        window.addEventListener(CY.modules().FACE_ATTENTION.eventName, (evt) => {
-            console.log('Face attention result', evt.detail);
-            let data = new EventData();
-            data.user = this.user.name;
-            data.eventType = evt.detail.type;
-            data.eventValue = evt.detail.output.attention;
-            if (this.oppenedConnection) {
-                this.ws.send(JSON.stringify(data));
-            }
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_ATTENTION.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+            let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.attention);
+            this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
         });
-        window.addEventListener(CY.modules().FACE_AROUSAL_VALENCE.eventName, (evt) => {
-            console.log('Face arousal valence result', evt.detail, evt.detail.output.arousalvalence.arousal > 0);
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_AROUSAL_VALENCE.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
             if (evt.detail.output.arousalvalence.arousal > 0) {
-                let data = new EventData();
-                data.user = this.user.name;
-                data.eventType = "face_arousal";
-                data.eventValue = evt.detail.output.arousalvalence.arousal;
-                if (this.oppenedConnection) {
-                    this.ws.send(JSON.stringify(data));
-                }
+                let data = new EventData(userName, meetingNumber, "face_arousal", evt.detail.output.arousalvalence.arousal);
+                this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
             }
             if (evt.detail.output.arousalvalence.valence > 0) {
-                let data = new EventData();
-                data.user = this.user.name;
-                data.eventType = "face_valence";
-                data.eventValue = evt.detail.output.arousalvalence.valence;
-                if (this.oppenedConnection) {
-                    this.ws.send(JSON.stringify(data));
-                }
+                let data = new EventData(userName, meetingNumber, "face_valence", evt.detail.output.arousalvalence.valence);
+                this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
             }
         });
+        // let event = fromEvent(window, eventName);
+        // let throttledEvent = event.pipe(throttle(ev => interval(1000)));
+        // throttledEvent.subscribe( (evt: any) => {
+        //   let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.numericAge);
+        //   this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+        // })
+    }
+    sendEventToServer(data) {
+        return new rxjs__WEBPACK_IMPORTED_MODULE_3__["Observable"](observer => {
+            this.request(RequestMethod.POST, Endpoints.ADD_EVENT_ENDPOINT, {
+                body: JSON.stringify(data)
+            }).subscribe((result) => observer.next(result), (error) => observer.error(error));
+        });
+    }
+    request(method, endpoint, options) {
+        return this.httpClient.request(method, endpoint, options);
     }
 }
-AppComponent.ɵfac = function AppComponent_Factory(t) { return new (t || AppComponent)(_angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_common_http__WEBPACK_IMPORTED_MODULE_3__["HttpClient"]), _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_common__WEBPACK_IMPORTED_MODULE_1__["DOCUMENT"]), _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_router__WEBPACK_IMPORTED_MODULE_4__["ActivatedRoute"])); };
+AppComponent.ɵfac = function AppComponent_Factory(t) { return new (t || AppComponent)(_angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_common_http__WEBPACK_IMPORTED_MODULE_6__["HttpClient"]), _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_common__WEBPACK_IMPORTED_MODULE_1__["DOCUMENT"]), _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_router__WEBPACK_IMPORTED_MODULE_7__["ActivatedRoute"])); };
 AppComponent.ɵcmp = _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdefineComponent"]({ type: AppComponent, selectors: [["app-root"]], decls: 9, vars: 1, consts: [[3, "click"], ["id", "startSDK", 3, "click"], ["id", "stopSDK", 3, "click"]], template: function AppComponent_Template(rf, ctx) { if (rf & 1) {
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](0, "main");
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](1, "h1");
@@ -274,12 +243,33 @@ AppComponent.ɵcmp = _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdefineCompo
                 templateUrl: './app.component.html',
                 styleUrls: ['./app.component.css']
             }]
-    }], function () { return [{ type: _angular_common_http__WEBPACK_IMPORTED_MODULE_3__["HttpClient"] }, { type: undefined, decorators: [{
+    }], function () { return [{ type: _angular_common_http__WEBPACK_IMPORTED_MODULE_6__["HttpClient"] }, { type: undefined, decorators: [{
                 type: _angular_core__WEBPACK_IMPORTED_MODULE_0__["Inject"],
                 args: [_angular_common__WEBPACK_IMPORTED_MODULE_1__["DOCUMENT"]]
-            }] }, { type: _angular_router__WEBPACK_IMPORTED_MODULE_4__["ActivatedRoute"] }]; }, null); })();
+            }] }, { type: _angular_router__WEBPACK_IMPORTED_MODULE_7__["ActivatedRoute"] }]; }, null); })();
 class EventData {
+    constructor(user, meetingId, eventType, eventValue) {
+        this.id = Object(uuid__WEBPACK_IMPORTED_MODULE_4__["v4"])();
+        this.user = user;
+        this.meetingId = meetingId;
+        this.eventType = eventType;
+        this.eventValue = eventValue;
+    }
 }
+var Endpoints;
+(function (Endpoints) {
+    Endpoints["ADD_EVENT_ENDPOINT"] = "https://8ogkak0sti.execute-api.eu-central-1.amazonaws.com/Prod/event";
+})(Endpoints || (Endpoints = {}));
+class RequestOptions {
+}
+var RequestMethod;
+(function (RequestMethod) {
+    RequestMethod["GET"] = "get";
+    RequestMethod["POST"] = "post";
+    RequestMethod["PUT"] = "put";
+    RequestMethod["DELETE"] = "delete";
+    RequestMethod["PATCH"] = "patch";
+})(RequestMethod || (RequestMethod = {}));
 
 
 /***/ }),
