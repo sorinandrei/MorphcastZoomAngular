@@ -171,7 +171,7 @@ class AppComponent {
         this.loader.addModule(CY.modules().FACE_EMOTION.name, { smoothness: 0.99, enableBalancer: false });
         this.loader.addModule(CY.modules().FACE_AROUSAL_VALENCE.name, { smoothness: 0.8 });
         this.loader.addModule(CY.modules().FACE_AGE.name);
-        this.loader.powerSave(1);
+        // this.loader.powerSave(1);
         this.loader.maxInputFrameSize(320);
         this.loader.load().then(({ start, stop, terminate }) => {
             this.startSDK = start;
