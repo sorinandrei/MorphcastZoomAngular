@@ -44,12 +44,16 @@ const environment = {
 /*!**********************************!*\
   !*** ./src/app/app.component.ts ***!
   \**********************************/
-/*! exports provided: AppComponent */
+/*! exports provided: AppComponent, Participant, MeanAttention, MeanEngagement, MeanPositivity */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "AppComponent", function() { return AppComponent; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Participant", function() { return Participant; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MeanAttention", function() { return MeanAttention; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MeanEngagement", function() { return MeanEngagement; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MeanPositivity", function() { return MeanPositivity; });
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @angular/core */ "fXoL");
 /* harmony import */ var _angular_common__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/common */ "ofXK");
 /* harmony import */ var _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @zoomus/websdk */ "3hj0");
@@ -87,17 +91,24 @@ class AppComponent {
         this.userName = 'Angular';
         this.userEmail = '';
         this.passWord = '';
+        this.participant = new Participant();
+    }
+    ngOnInit() {
         this.route.queryParams.subscribe(params => {
             console.log(params);
             this.passWord = params['password'];
             let meetingId = params['meetingId'];
             if (meetingId && meetingId > 0) {
-                this.registerEventListener(meetingId, "Guest_" + this.getRandomID());
+                let name = "Guest_" + this.getRandomID();
+                this.registerEventListener(meetingId, name);
+                this.participant.name = name;
+                setInterval(() => {
+                    this.sendParticipantToServer(this.participant, meetingId).subscribe(res => { }, err => console.log(err));
+                    this.getMeetingState(meetingId).subscribe(res => { console.log(res); }, err => console.log(err));
+                }, 10000);
             }
             this.meetingNumber = meetingId;
         });
-    }
-    ngOnInit() {
         this.loadMorphcast();
     }
     getRandomID() {
@@ -171,41 +182,54 @@ class AppComponent {
     registerEventListener(meetingNumber, userName) {
         Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_DETECTOR.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
             let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.totalFaces);
-            this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
+            // this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+            this.participant.parseEvent(data);
         });
         Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_AGE.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+            console.log(evt);
             let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.numericAge);
-            this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
+            //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+            this.participant.parseEvent(data);
         });
         Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_EMOTION.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
             let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.dominantEmotion);
-            this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
+            //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+            this.participant.parseEvent(data);
         });
         Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_ATTENTION.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
             let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.attention);
-            this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
+            //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+            this.participant.parseEvent(data);
         });
         Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_AROUSAL_VALENCE.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
             if (evt.detail.output.arousalvalence.arousal > 0) {
                 let data = new EventData(userName, meetingNumber, "face_arousal", evt.detail.output.arousalvalence.arousal);
-                this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
+                //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+                this.participant.parseEvent(data);
             }
             if (evt.detail.output.arousalvalence.valence > 0) {
                 let data = new EventData(userName, meetingNumber, "face_valence", evt.detail.output.arousalvalence.valence);
-                this.sendEventToServer(data).subscribe(res => { }, err => console.log(err));
+                //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+                this.participant.parseEvent(data);
             }
         });
-        // let event = fromEvent(window, eventName);
-        // let throttledEvent = event.pipe(throttle(ev => interval(1000)));
-        // throttledEvent.subscribe( (evt: any) => {
-        //   let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.numericAge);
-        //   this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
-        // })
     }
     sendEventToServer(data) {
         return new rxjs__WEBPACK_IMPORTED_MODULE_3__["Observable"](observer => {
             this.request(RequestMethod.POST, Endpoints.ADD_EVENT_ENDPOINT, {
                 body: JSON.stringify(data)
+            }).subscribe((result) => observer.next(result), (error) => observer.error(error));
+        });
+    }
+    getMeetingState(meetingId) {
+        return new rxjs__WEBPACK_IMPORTED_MODULE_3__["Observable"](observer => {
+            this.request(RequestMethod.GET, Endpoints.GET_MEETING + '/' + meetingId, {}).subscribe(result => observer.next(result), (error) => observer.error(error));
+        });
+    }
+    sendParticipantToServer(participant, meetingId) {
+        return new rxjs__WEBPACK_IMPORTED_MODULE_3__["Observable"](observer => {
+            this.request(RequestMethod.POST, Endpoints.ADD_PARTICIPANT_ENDPOINT + '/' + meetingId, {
+                body: JSON.stringify(participant)
             }).subscribe((result) => observer.next(result), (error) => observer.error(error));
         });
     }
@@ -259,6 +283,8 @@ class EventData {
 var Endpoints;
 (function (Endpoints) {
     Endpoints["ADD_EVENT_ENDPOINT"] = "https://8ogkak0sti.execute-api.eu-central-1.amazonaws.com/Prod/event";
+    Endpoints["ADD_PARTICIPANT_ENDPOINT"] = "https://8ogkak0sti.execute-api.eu-central-1.amazonaws.com/Prod/participant";
+    Endpoints["GET_MEETING"] = "https://8ogkak0sti.execute-api.eu-central-1.amazonaws.com/Prod";
 })(Endpoints || (Endpoints = {}));
 class RequestOptions {
 }
@@ -270,6 +296,115 @@ var RequestMethod;
     RequestMethod["DELETE"] = "delete";
     RequestMethod["PATCH"] = "patch";
 })(RequestMethod || (RequestMethod = {}));
+class Participant {
+    constructor() {
+        this.faceLikelyAge = 0;
+        this.meanPositivity = new MeanPositivity();
+        this.meanEngagement = new MeanEngagement();
+        this.meanAttention = new Map();
+    }
+    parseEvent(event) {
+        if (event.eventType === "face_detector") {
+            this.totalFaces = event.eventValue;
+        }
+        if (event.eventType === "face_emotion") {
+            this.emotion = event.eventValue;
+        }
+        if (event.eventType === "face_age") {
+            if (this.faceLikelyAge == 0 && this.attentionPercentage > 85) {
+                this.faceLikelyAge = event.eventValue;
+            }
+        }
+        if (event.eventType === "face_valence") {
+            this.meanPositivity.add(event);
+        }
+        if (event.eventType === "face_arousal") {
+            this.meanEngagement.add(event);
+        }
+        if (event.eventType === "face_attention") {
+            this.attentionPercentage = parseInt((event.eventValue * 100).toFixed(0));
+            let date = new Date();
+            let timeKey = date.getHours() + ":" + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes();
+            if (this.meanAttention.has(timeKey)) {
+                this.meanAttention.set(timeKey, this.meanAttention.get(timeKey).add(event));
+            }
+            else {
+                this.meanAttention.set(timeKey, new MeanAttention().add(event));
+            }
+        }
+        console.log(this);
+        console.log(JSON.parse(JSON.stringify(this)));
+    }
+}
+class MeanAttention {
+    constructor() {
+        this.attentionLevelsSum = 0;
+        this.attentionLevelsEventSum = 0;
+    }
+    add(event) {
+        let attentionInPercentage = parseInt((event.eventValue * 100).toFixed(0));
+        this.attentionLevelsSum += attentionInPercentage;
+        this.attentionLevelsEventSum += 1;
+        this.meanAttendeesAttention = Math.round(this.attentionLevelsSum / this.attentionLevelsEventSum);
+        return this;
+    }
+}
+class MeanEngagement {
+    constructor() {
+        this.arousalEventsNumber = 0;
+        this.arousalValuesSum = 0;
+        this.meanEngagementValue = 0;
+    }
+    add(event) {
+        event.eventValue *= 3;
+        this.arousalEventsNumber += 1;
+        this.arousalValuesSum += event.eventValue;
+        this.meanEngagementValue = Math.round(this.arousalValuesSum * 100 / this.arousalEventsNumber);
+        if (this.meanEngagementValue > 100) {
+            this.meanEngagementValue = 100;
+        }
+        if (this.meanEngagementValue <= 25) {
+            this.status = 'danger';
+        }
+        else if (this.meanEngagementValue <= 50) {
+            this.status = 'warning';
+        }
+        else if (this.meanEngagementValue <= 75) {
+            this.status = 'info';
+        }
+        else {
+            this.status = 'success';
+        }
+    }
+}
+class MeanPositivity {
+    constructor() {
+        this.valenceEventsNumber = 0;
+        this.valenceValuesSum = 0;
+        this.meanPositivityValue = 0;
+    }
+    add(event) {
+        event.eventValue *= 3;
+        this.valenceEventsNumber += 1;
+        this.valenceValuesSum += event.eventValue;
+        this.meanPositivityValue = Math.round(this.valenceValuesSum * 100 / this.valenceEventsNumber);
+        if (this.meanPositivityValue > 100) {
+            this.meanPositivityValue = 100;
+        }
+        if (this.meanPositivityValue <= 25) {
+            this.status = 'danger';
+        }
+        else if (this.meanPositivityValue <= 50) {
+            this.status = 'warning';
+        }
+        else if (this.meanPositivityValue <= 75) {
+            this.status = 'info';
+        }
+        else {
+            this.status = 'success';
+        }
+    }
+}
 
 
 /***/ }),

@@ -42,23 +42,34 @@ export class AppComponent implements OnInit {
   userEmail = ''
   passWord = ''
 
+  public participant:Participant = new Participant();
+
   constructor(
     public httpClient: HttpClient, 
     @Inject(DOCUMENT) document,
     private route: ActivatedRoute
   ) {
+    
+  }
+
+  ngOnInit() {
     this.route.queryParams.subscribe(params => {
       console.log(params)
       this.passWord = params['password'];
       let meetingId = params['meetingId'];
       if(meetingId && meetingId > 0){
-        this.registerEventListener(meetingId, "Guest_" + this.getRandomID())
+
+        let name = "Guest_" + this.getRandomID()
+        this.registerEventListener(meetingId, name)
+        this.participant.name = name;
+
+        setInterval(() => {
+          this.sendParticipantToServer(this.participant, meetingId).subscribe( res => {}, err =>  console.log(err) );
+          this.getMeetingState(meetingId).subscribe( res => {console.log(res)}, err =>  console.log(err) );
+        }, 10000);
       }
       this.meetingNumber = meetingId
     });
-  }
-
-  ngOnInit() {
     this.loadMorphcast();
   }
 
@@ -142,43 +153,46 @@ export class AppComponent implements OnInit {
     
     fromEvent(window, CY.modules().FACE_DETECTOR.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
       let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.totalFaces);
-      this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+      // this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+      this.participant.parseEvent(data)
     });
 
     fromEvent(window, CY.modules().FACE_AGE.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
+      console.log(evt)
       let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.numericAge);
-      this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+      //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+      this.participant.parseEvent(data)
     });
 
     fromEvent(window, CY.modules().FACE_EMOTION.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
       let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.dominantEmotion);
-      this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+      //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+      this.participant.parseEvent(data)
     });
 
     fromEvent(window, CY.modules().FACE_ATTENTION.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
       let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.attention);
-      this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+      //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+      this.participant.parseEvent(data)
     });
 
     fromEvent(window, CY.modules().FACE_AROUSAL_VALENCE.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
       if(evt.detail.output.arousalvalence.arousal > 0){
         let data:EventData = new EventData(userName, meetingNumber, "face_arousal", evt.detail.output.arousalvalence.arousal);
-        this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+        //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+        this.participant.parseEvent(data)
       }
 
       if(evt.detail.output.arousalvalence.valence > 0){
         let data:EventData = new EventData(userName, meetingNumber, "face_valence", evt.detail.output.arousalvalence.valence);
-        this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+        //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+        this.participant.parseEvent(data)
       }
     });
-    // let event = fromEvent(window, eventName);
-    // let throttledEvent = event.pipe(throttle(ev => interval(1000)));
-    // throttledEvent.subscribe( (evt: any) => {
-    //   let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.numericAge);
-    //   this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
-    // })
 
   }
+
+  
 
   private sendEventToServer(data:EventData):Observable<any>{
     return new Observable( observer => {
@@ -187,6 +201,34 @@ export class AppComponent implements OnInit {
         Endpoints.ADD_EVENT_ENDPOINT,
         <RequestOptions>{
           body: JSON.stringify(data)
+        }
+      ).subscribe(
+				(result: String) => observer.next(result),
+				(error: any) =>  observer.error(error)
+      );
+    });
+  }
+
+  private getMeetingState(meetingId){
+    return new Observable( observer => {
+      this.request(
+        RequestMethod.GET, 
+        Endpoints.GET_MEETING + '/' + meetingId,
+        <RequestOptions>{}
+      ).subscribe(
+				result => observer.next(result),
+				(error: any) =>  observer.error(error)
+      );
+    });
+  }
+
+  private sendParticipantToServer(participant:Participant, meetingId:number){
+    return new Observable( observer => {
+      this.request(
+        RequestMethod.POST, 
+        Endpoints.ADD_PARTICIPANT_ENDPOINT + '/' + meetingId,
+        <RequestOptions>{
+          body: JSON.stringify(participant)
         }
       ).subscribe(
 				(result: String) => observer.next(result),
@@ -220,6 +262,8 @@ class EventData {
 
 enum Endpoints {
 	ADD_EVENT_ENDPOINT = "https://8ogkak0sti.execute-api.eu-central-1.amazonaws.com/Prod/event",
+  ADD_PARTICIPANT_ENDPOINT = "https://8ogkak0sti.execute-api.eu-central-1.amazonaws.com/Prod/participant",
+  GET_MEETING = "https://8ogkak0sti.execute-api.eu-central-1.amazonaws.com/Prod"
 }
 
 class RequestOptions {
@@ -243,4 +287,128 @@ enum RequestMethod {
 	PUT = "put",
 	DELETE = "delete",
 	PATCH = "patch"
+}
+
+
+export class Participant {
+  name:string;
+
+  email: string;
+  totalFaces: number;
+  emotion: string;
+  faceLikelyAge: number = 0;
+  attentionPercentage : number;
+  
+  meanPositivity: MeanPositivity = new MeanPositivity();
+  meanEngagement: MeanEngagement = new MeanEngagement();
+
+  meanAttention: Map<string, MeanAttention> =  new Map();
+  
+  public parseEvent(event: EventData){
+    if(event.eventType === "face_detector"){
+      this.totalFaces = event.eventValue;
+    }
+
+    if(event.eventType === "face_emotion"){
+      this.emotion = event.eventValue;
+    }
+
+    if(event.eventType === "face_age"){
+      if(this.faceLikelyAge == 0 && this.attentionPercentage > 85){
+        this.faceLikelyAge = event.eventValue;
+      }
+    }
+
+    if(event.eventType === "face_valence"){
+      this.meanPositivity.add(event);
+    }
+
+    if(event.eventType === "face_arousal"){
+      this.meanEngagement.add(event);
+    }
+
+    if(event.eventType === "face_attention" ){
+      this.attentionPercentage  = parseInt((event.eventValue * 100).toFixed(0));
+      let date = new Date()
+      let timeKey = date.getHours() + ":" + (date.getMinutes()<10?'0':'') + date.getMinutes();
+      if (this.meanAttention.has(timeKey)) {
+        this.meanAttention.set(timeKey, this.meanAttention.get(timeKey).add(event));
+      } else {
+        this.meanAttention.set(timeKey, new MeanAttention().add(event));
+      }
+    }
+    console.log(this)
+    console.log(JSON.parse(JSON.stringify(this)))
+  }
+}
+
+export class MeanAttention {
+  meanAttendeesAttention: number;
+  attentionLevelsSum: number = 0;
+  attentionLevelsEventSum: number = 0;
+
+  add(event: EventData){
+    let attentionInPercentage:number = parseInt((event.eventValue * 100).toFixed(0));
+
+    this.attentionLevelsSum += attentionInPercentage;
+    this.attentionLevelsEventSum += 1;
+    this.meanAttendeesAttention = Math.round(this.attentionLevelsSum / this.attentionLevelsEventSum);
+    return this;
+  }
+}
+
+export class MeanEngagement {
+  arousalEventsNumber: number = 0;
+  arousalValuesSum: number = 0;
+  meanEngagementValue: number = 0;
+  status: string;
+
+  add(event: EventData){
+   event.eventValue *= 3;
+   this.arousalEventsNumber += 1;
+   this.arousalValuesSum += event.eventValue;
+   this.meanEngagementValue =  Math.round(this.arousalValuesSum * 100 / this.arousalEventsNumber);
+   if(this.meanEngagementValue > 100) {
+    this.meanEngagementValue = 100;
+   }
+
+   if (this.meanEngagementValue <= 25) {
+      this.status = 'danger';
+    } else if (this.meanEngagementValue <= 50) {
+      this.status = 'warning';
+    } else if (this.meanEngagementValue <= 75) {
+      this.status = 'info';
+    } else {
+      this.status = 'success';
+    }
+
+  }
+}
+
+export class MeanPositivity {
+  valenceEventsNumber: number = 0;
+  valenceValuesSum: number = 0;
+  meanPositivityValue: number = 0;
+  status: string;
+
+  add(event: EventData){
+   event.eventValue *= 3;
+   this.valenceEventsNumber += 1;
+   this.valenceValuesSum += event.eventValue;
+   this.meanPositivityValue =  Math.round(this.valenceValuesSum * 100 / this.valenceEventsNumber);
+   if(this.meanPositivityValue > 100) {
+    this.meanPositivityValue = 100;
+   }
+
+   if (this.meanPositivityValue <= 25) {
+      this.status = 'danger';
+    } else if (this.meanPositivityValue <= 50) {
+      this.status = 'warning';
+    } else if (this.meanPositivityValue <= 75) {
+      this.status = 'info';
+    } else {
+      this.status = 'success';
+    }
+
+  }
 }
