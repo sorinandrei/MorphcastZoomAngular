@@ -117,7 +117,7 @@ export class AppComponent implements OnInit {
           userName: this.userName,
           apiKey: this.apiKey,
           userEmail: this.userEmail,
-          passWord: this.passWord,
+          passWord: "1234",
           success: (success) => {
             console.log(success)
           },
