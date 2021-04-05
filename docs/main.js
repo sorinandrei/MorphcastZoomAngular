@@ -88,24 +88,19 @@ class AppComponent {
         this.meetingNumber = '';
         this.role = 0;
         this.leaveUrl = 'https://sorinandrei.github.io/ZoomAngularTest';
-        this.userName = 'Angular';
-        this.userEmail = '';
         this.passWord = '';
         this.participant = new Participant();
     }
     ngOnInit() {
         this.route.queryParams.subscribe(params => {
             console.log(params);
-            this.userName = params['name'];
+            this.participant.name = params['name'];
             let meetingId = params['meetingId'];
             if (meetingId && meetingId > 0) {
-                if (this.userName) {
-                    this.participant.name = this.userName;
+                if (!this.participant.name) {
+                    this.participant.name = "Guest_" + this.getRandomID();
                 }
-                else {
-                    let name = "Guest_" + this.getRandomID();
-                    this.participant.name = name;
-                }
+                this.participant.email = this.participant.name + '@gmail.com';
                 this.registerEventListener(meetingId, this.participant.name);
                 setInterval(() => {
                     this.sendParticipantToServer(this.participant, meetingId).subscribe(res => { }, err => console.log(err));
@@ -152,9 +147,9 @@ class AppComponent {
                 _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].join({
                     signature: signature,
                     meetingNumber: this.meetingNumber,
-                    userName: this.userName,
+                    userName: this.participant.name,
                     apiKey: this.apiKey,
-                    userEmail: this.userEmail,
+                    userEmail: this.participant.email,
                     passWord: "1234",
                     success: (success) => {
                         console.log(success);
