@@ -51,6 +51,8 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.loadMorphcast();
+
     this.route.queryParams.subscribe(params => {
       console.log(params)
       this.participant.name = params['name'];
@@ -61,19 +63,20 @@ export class AppComponent implements OnInit {
         if(!this.participant.name){
           this.participant.name = "Guest_" + this.getRandomID();
         }
-        
         this.participant.email = this.participant.name+'@gmail.com'
 
-        this.registerEventListener(meetingId, this.participant.name)
+        this.registerEventListener(meetingId, this.participant.name);
+        this.getSignature();
+        this.startSDK();
 
         setInterval(() => {
           this.sendParticipantToServer(this.participant, meetingId).subscribe( res => {}, err =>  console.log(err) );
-          this.getMeetingState(meetingId).subscribe( res => {console.log(res)}, err =>  console.log(err) );
+          //this.getMeetingState(meetingId).subscribe( res => {console.log(res)}, err =>  console.log(err) );
         }, 10000);
       }
       this.meetingNumber = meetingId
     });
-    this.loadMorphcast();
+    
   }
 
   private getRandomID(): string{
