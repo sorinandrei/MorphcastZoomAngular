@@ -28,8 +28,6 @@ export class AppComponent implements OnInit {
   public startSDK;
   public terminateSDK;
 
-  private ws; 
-  private oppenedConnection = false;
   public user: any;
 
   // setup your signature endpoint here: https://github.com/zoom/websdk-sample-signature-node.js
@@ -59,17 +57,18 @@ export class AppComponent implements OnInit {
       if(meetingId && meetingId > 0){
         this.meetingNumber = meetingId
         if(!this.participant.name){
+          console.log("!this.participant.name")
           this.participant.name = "Guest_" + this.getRandomID();
         }
         this.participant.email = this.participant.name+'@gmail.com'
 
         this.registerEventListener(meetingId, this.participant.name);
-        //this.getSignature();
+        this.getSignature();
         //this.startSDK();
 
         setInterval(() => {
           this.sendParticipantToServer(this.participant, meetingId).subscribe( res => {}, err =>  console.log(err) );
-        }, 10000);
+        }, 3000);
       }
       
     });
@@ -77,10 +76,12 @@ export class AppComponent implements OnInit {
   }
 
   private getRandomID(): string{
+    console.log("inside get random id")
     return Math.random().toString(36).substr(2, 9);
   }
 
   getSignature() {
+    document.getElementById('zmmtg-root').style.display = 'block'
     this.httpClient.post(this.signatureEndpoint, {
 	    meetingNumber: this.meetingNumber,
 	    role: this.role
@@ -133,10 +134,11 @@ export class AppComponent implements OnInit {
     this.loader.addModule(CY.modules().FACE_EMOTION.name, { smoothness: 0.99, enableBalancer: false });
     this.loader.addModule(CY.modules().FACE_AROUSAL_VALENCE.name, {smoothness: 0.8});
     this.loader.addModule(CY.modules().FACE_AGE.name);
+    this.loader.addModule(CY.modules().FACE_POSITIVITY.name, { smoothness: 0.70 });
     this.loader.powerSave(2);
     this.loader.maxInputFrameSize(320);
     this.loader.load().then(({ start, stop, terminate  }) => {
-      //start();
+      start();
       this.startSDK = start;
       this.stopSDK = stop;
       this.terminateSDK = terminate;
@@ -166,6 +168,13 @@ export class AppComponent implements OnInit {
 
     fromEvent(window, CY.modules().FACE_ATTENTION.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
       let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.attention);
+      //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+      this.participant.parseEvent(data)
+    });
+
+    fromEvent(window, CY.modules().FACE_POSITIVITY.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
+      console.log(evt)
+      let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.positivity);
       //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
       this.participant.parseEvent(data)
     });
@@ -292,10 +301,10 @@ export class Participant {
   emotion: string;
   faceLikelyAge: number = 0;
   attentionPercentage : number;
+  positivityPercent: number;
   
   meanPositivity: MeanPositivity = new MeanPositivity();
-  meanEngagement: MeanEngagement = new MeanEngagement();
-
+  overallMeanAttention: MeanAttention = new MeanAttention();
   meanAttention: Map<string, MeanAttention> =  new Map();
   
   public parseEvent(event: EventData){
@@ -313,15 +322,13 @@ export class Participant {
       }
     }
 
-    if(event.eventType === "face_valence"){
+    if(event.eventType === "face_positivity"){
       this.meanPositivity.add(event);
-    }
-
-    if(event.eventType === "face_arousal"){
-      this.meanEngagement.add(event);
+      this.positivityPercent = parseInt((event.eventValue * 100).toFixed(0));
     }
 
     if(event.eventType === "face_attention" ){
+      this.overallMeanAttention.add(event)
       this.attentionPercentage  = parseInt((event.eventValue * 100).toFixed(0));
       let date = new Date()
       let timeKey = date.getHours() + ":" + (date.getMinutes()<10?'0':'') + date.getMinutes();
@@ -331,7 +338,6 @@ export class Participant {
         this.meanAttention.set(timeKey, new MeanAttention().add(event));
       }
     }
-    console.log(this)
     console.log(JSON.parse(JSON.stringify(this)))
   }
 }
@@ -340,6 +346,7 @@ export class MeanAttention {
   meanAttendeesAttention: number;
   attentionLevelsSum: number = 0;
   attentionLevelsEventSum: number = 0;
+  status: string;
 
   add(event: EventData){
     let attentionInPercentage:number = parseInt((event.eventValue * 100).toFixed(0));
@@ -347,6 +354,17 @@ export class MeanAttention {
     this.attentionLevelsSum += attentionInPercentage;
     this.attentionLevelsEventSum += 1;
     this.meanAttendeesAttention = Math.round(this.attentionLevelsSum / this.attentionLevelsEventSum);
+
+    if (this.meanAttendeesAttention <= 25) {
+      this.status = 'danger';
+    } else if (this.meanAttendeesAttention <= 50) {
+      this.status = 'warning';
+    } else if (this.meanAttendeesAttention <= 75) {
+      this.status = 'info';
+    } else {
+      this.status = 'success';
+    }
+
     return this;
   }
 }
@@ -380,21 +398,21 @@ export class MeanEngagement {
 }
 
 export class MeanPositivity {
-  valenceEventsNumber: number = 0;
-  valenceValuesSum: number = 0;
+  positivityEventsNumber: number = 0;
+  positivityValuesSum: number = 0;
   meanPositivityValue: number = 0;
   status: string;
 
   add(event: EventData){
-   event.eventValue *= 3;
-   this.valenceEventsNumber += 1;
-   this.valenceValuesSum += event.eventValue;
-   this.meanPositivityValue =  Math.round(this.valenceValuesSum * 100 / this.valenceEventsNumber);
-   if(this.meanPositivityValue > 100) {
-    this.meanPositivityValue = 100;
-   }
+    let positivityInPercentage:number = parseInt((event.eventValue * 100).toFixed(0));
+    this.positivityEventsNumber += 1;
+    this.positivityValuesSum += positivityInPercentage;
+    this.meanPositivityValue =  Math.round(this.positivityValuesSum / this.positivityEventsNumber);
+    if(this.meanPositivityValue > 100) {
+      this.meanPositivityValue = 100;
+    }
 
-   if (this.meanPositivityValue <= 25) {
+    if (this.meanPositivityValue <= 25) {
       this.status = 'danger';
     } else if (this.meanPositivityValue <= 50) {
       this.status = 'warning';

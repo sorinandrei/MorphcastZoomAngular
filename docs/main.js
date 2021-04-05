@@ -81,7 +81,6 @@ class AppComponent {
         this.httpClient = httpClient;
         this.route = route;
         this.loader = CY.loader();
-        this.oppenedConnection = false;
         // setup your signature endpoint here: https://github.com/zoom/websdk-sample-signature-node.js
         this.signatureEndpoint = 'https://benchmark-signature.herokuapp.com';
         this.apiKey = 'rZmqWjExSze-48_tCZVwYw';
@@ -100,22 +99,25 @@ class AppComponent {
             if (meetingId && meetingId > 0) {
                 this.meetingNumber = meetingId;
                 if (!this.participant.name) {
+                    console.log("!this.participant.name");
                     this.participant.name = "Guest_" + this.getRandomID();
                 }
                 this.participant.email = this.participant.name + '@gmail.com';
                 this.registerEventListener(meetingId, this.participant.name);
-                //this.getSignature();
+                this.getSignature();
                 //this.startSDK();
                 setInterval(() => {
                     this.sendParticipantToServer(this.participant, meetingId).subscribe(res => { }, err => console.log(err));
-                }, 10000);
+                }, 3000);
             }
         });
     }
     getRandomID() {
+        console.log("inside get random id");
         return Math.random().toString(36).substr(2, 9);
     }
     getSignature() {
+        document.getElementById('zmmtg-root').style.display = 'block';
         this.httpClient.post(this.signatureEndpoint, {
             meetingNumber: this.meetingNumber,
             role: this.role
@@ -166,10 +168,11 @@ class AppComponent {
         this.loader.addModule(CY.modules().FACE_EMOTION.name, { smoothness: 0.99, enableBalancer: false });
         this.loader.addModule(CY.modules().FACE_AROUSAL_VALENCE.name, { smoothness: 0.8 });
         this.loader.addModule(CY.modules().FACE_AGE.name);
+        this.loader.addModule(CY.modules().FACE_POSITIVITY.name, { smoothness: 0.70 });
         this.loader.powerSave(2);
         this.loader.maxInputFrameSize(320);
         this.loader.load().then(({ start, stop, terminate }) => {
-            //start();
+            start();
             this.startSDK = start;
             this.stopSDK = stop;
             this.terminateSDK = terminate;
@@ -194,6 +197,12 @@ class AppComponent {
         });
         Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_ATTENTION.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
             let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.attention);
+            //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
+            this.participant.parseEvent(data);
+        });
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_POSITIVITY.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+            console.log(evt);
+            let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.positivity);
             //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
             this.participant.parseEvent(data);
         });
@@ -296,7 +305,7 @@ class Participant {
     constructor() {
         this.faceLikelyAge = 0;
         this.meanPositivity = new MeanPositivity();
-        this.meanEngagement = new MeanEngagement();
+        this.overallMeanAttention = new MeanAttention();
         this.meanAttention = new Map();
     }
     parseEvent(event) {
@@ -311,13 +320,12 @@ class Participant {
                 this.faceLikelyAge = event.eventValue;
             }
         }
-        if (event.eventType === "face_valence") {
+        if (event.eventType === "face_positivity") {
             this.meanPositivity.add(event);
-        }
-        if (event.eventType === "face_arousal") {
-            this.meanEngagement.add(event);
+            this.positivityPercent = parseInt((event.eventValue * 100).toFixed(0));
         }
         if (event.eventType === "face_attention") {
+            this.overallMeanAttention.add(event);
             this.attentionPercentage = parseInt((event.eventValue * 100).toFixed(0));
             let date = new Date();
             let timeKey = date.getHours() + ":" + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes();
@@ -328,7 +336,6 @@ class Participant {
                 this.meanAttention.set(timeKey, new MeanAttention().add(event));
             }
         }
-        console.log(this);
         console.log(JSON.parse(JSON.stringify(this)));
     }
 }
@@ -342,6 +349,18 @@ class MeanAttention {
         this.attentionLevelsSum += attentionInPercentage;
         this.attentionLevelsEventSum += 1;
         this.meanAttendeesAttention = Math.round(this.attentionLevelsSum / this.attentionLevelsEventSum);
+        if (this.meanAttendeesAttention <= 25) {
+            this.status = 'danger';
+        }
+        else if (this.meanAttendeesAttention <= 50) {
+            this.status = 'warning';
+        }
+        else if (this.meanAttendeesAttention <= 75) {
+            this.status = 'info';
+        }
+        else {
+            this.status = 'success';
+        }
         return this;
     }
 }
@@ -375,15 +394,15 @@ class MeanEngagement {
 }
 class MeanPositivity {
     constructor() {
-        this.valenceEventsNumber = 0;
-        this.valenceValuesSum = 0;
+        this.positivityEventsNumber = 0;
+        this.positivityValuesSum = 0;
         this.meanPositivityValue = 0;
     }
     add(event) {
-        event.eventValue *= 3;
-        this.valenceEventsNumber += 1;
-        this.valenceValuesSum += event.eventValue;
-        this.meanPositivityValue = Math.round(this.valenceValuesSum * 100 / this.valenceEventsNumber);
+        let positivityInPercentage = parseInt((event.eventValue * 100).toFixed(0));
+        this.positivityEventsNumber += 1;
+        this.positivityValuesSum += positivityInPercentage;
+        this.meanPositivityValue = Math.round(this.positivityValuesSum / this.positivityEventsNumber);
         if (this.meanPositivityValue > 100) {
             this.meanPositivityValue = 100;
         }
