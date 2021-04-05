@@ -96,12 +96,17 @@ class AppComponent {
     ngOnInit() {
         this.route.queryParams.subscribe(params => {
             console.log(params);
-            this.passWord = params['password'];
+            this.userName = params['name'];
             let meetingId = params['meetingId'];
             if (meetingId && meetingId > 0) {
-                let name = "Guest_" + this.getRandomID();
-                this.registerEventListener(meetingId, name);
-                this.participant.name = name;
+                if (this.userName) {
+                    this.participant.name = this.userName;
+                }
+                else {
+                    let name = "Guest_" + this.getRandomID();
+                    this.participant.name = name;
+                }
+                this.registerEventListener(meetingId, this.participant.name);
                 setInterval(() => {
                     this.sendParticipantToServer(this.participant, meetingId).subscribe(res => { }, err => console.log(err));
                     this.getMeetingState(meetingId).subscribe(res => { console.log(res); }, err => console.log(err));
@@ -150,7 +155,7 @@ class AppComponent {
                     userName: this.userName,
                     apiKey: this.apiKey,
                     userEmail: this.userEmail,
-                    passWord: this.passWord,
+                    passWord: "1234",
                     success: (success) => {
                         console.log(success);
                     },
