@@ -73,7 +73,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-_zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].setZoomJSLib('https://sorinandrei.github.io/ZoomAngularTest/node/@zoomus/websdk/dist/lib', '/av');
+_zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].setZoomJSLib('https://sorinandrei.github.io/MorphcastZoomAngular/node/@zoomus/websdk/dist/lib', '/av');
 _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].preLoadWasm();
 _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].prepareJssdk();
 class AppComponent {
@@ -87,7 +87,7 @@ class AppComponent {
         this.apiKey = 'rZmqWjExSze-48_tCZVwYw';
         this.meetingNumber = '';
         this.role = 0;
-        this.leaveUrl = 'https://sorinandrei.github.io/ZoomAngularTest';
+        this.leaveUrl = 'https://sorinandrei.github.io/MorphcastZoomAngular';
         this.passWord = '';
         this.participant = new Participant();
     }
@@ -98,19 +98,18 @@ class AppComponent {
             this.participant.name = params['name'];
             let meetingId = params['meetingId'];
             if (meetingId && meetingId > 0) {
+                this.meetingNumber = meetingId;
                 if (!this.participant.name) {
                     this.participant.name = "Guest_" + this.getRandomID();
                 }
                 this.participant.email = this.participant.name + '@gmail.com';
                 this.registerEventListener(meetingId, this.participant.name);
-                this.getSignature();
-                this.startSDK();
+                //this.getSignature();
+                //this.startSDK();
                 setInterval(() => {
                     this.sendParticipantToServer(this.participant, meetingId).subscribe(res => { }, err => console.log(err));
-                    //this.getMeetingState(meetingId).subscribe( res => {console.log(res)}, err =>  console.log(err) );
                 }, 10000);
             }
-            this.meetingNumber = meetingId;
         });
     }
     getRandomID() {
@@ -133,19 +132,13 @@ class AppComponent {
         });
     }
     startMeeting(signature) {
-        document.getElementById('zmmtg-root').style.display = 'block';
-        document.getElementById('startSDK').style.zIndex = "9";
-        document.getElementById('startSDK').style.position = "absolute";
-        document.getElementById('startSDK').style.right = "0px";
-        document.getElementById('startSDK').style.top = "0px";
-        document.getElementById('stopSDK').style.zIndex = "9";
-        document.getElementById('stopSDK').style.position = "absolute";
-        document.getElementById('stopSDK').style.right = "0px";
+        console.log("inside start meeting");
         _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].init({
             leaveUrl: this.leaveUrl,
             isSupportAV: true,
             success: (success) => {
                 console.log(success);
+                console.log(this.meetingNumber, this.participant);
                 _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].join({
                     signature: signature,
                     meetingNumber: this.meetingNumber,
@@ -176,6 +169,7 @@ class AppComponent {
         this.loader.powerSave(2);
         this.loader.maxInputFrameSize(320);
         this.loader.load().then(({ start, stop, terminate }) => {
+            //start();
             this.startSDK = start;
             this.stopSDK = stop;
             this.terminateSDK = terminate;
@@ -240,12 +234,27 @@ class AppComponent {
     }
 }
 AppComponent.ɵfac = function AppComponent_Factory(t) { return new (t || AppComponent)(_angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_common_http__WEBPACK_IMPORTED_MODULE_6__["HttpClient"]), _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_common__WEBPACK_IMPORTED_MODULE_1__["DOCUMENT"]), _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_router__WEBPACK_IMPORTED_MODULE_7__["ActivatedRoute"])); };
-AppComponent.ɵcmp = _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdefineComponent"]({ type: AppComponent, selectors: [["app-root"]], decls: 3, vars: 0, template: function AppComponent_Template(rf, ctx) { if (rf & 1) {
+AppComponent.ɵcmp = _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdefineComponent"]({ type: AppComponent, selectors: [["app-root"]], decls: 9, vars: 1, consts: [[3, "click"], ["id", "startSDK", 3, "click"], ["id", "stopSDK", 3, "click"]], template: function AppComponent_Template(rf, ctx) { if (rf & 1) {
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](0, "main");
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](1, "h1");
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](2, "Zoom WebSDK Sample Angular");
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](3, "button", 0);
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵlistener"]("click", function AppComponent_Template_button_click_3_listener() { return ctx.getSignature(); });
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](4);
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](5, "button", 1);
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵlistener"]("click", function AppComponent_Template_button_click_5_listener() { return ctx.startSDK(); });
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](6, "Start SDK ");
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](7, "button", 2);
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵlistener"]("click", function AppComponent_Template_button_click_7_listener() { return ctx.stopSDK(); });
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](8, "Stop SDK ");
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
+    } if (rf & 2) {
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵadvance"](4);
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtextInterpolate1"]("Join Meeting ", ctx.meetingNumber, "");
     } }, styles: ["main[_ngcontent-%COMP%] {\r\n  width: 70%;\r\n  margin: auto;\r\n  text-align: center;\r\n}\r\n\r\nbutton[_ngcontent-%COMP%] {\r\n  margin-top: 20px;\r\n  background-color: #2D8CFF;\r\n  color: #ffffff;\r\n  text-decoration: none;\r\n  padding-top: 10px;\r\n  padding-bottom: 10px;\r\n  padding-left: 40px;\r\n  padding-right: 40px;\r\n  display: inline-block;\r\n  border-radius: 10px;\r\n}\r\n\r\nbutton[_ngcontent-%COMP%]:hover {\r\n  background-color: #2681F2;\r\n}\n/*# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImFwcC5jb21wb25lbnQuY3NzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBO0VBQ0UsVUFBVTtFQUNWLFlBQVk7RUFDWixrQkFBa0I7QUFDcEI7O0FBRUE7RUFDRSxnQkFBZ0I7RUFDaEIseUJBQXlCO0VBQ3pCLGNBQWM7RUFDZCxxQkFBcUI7RUFDckIsaUJBQWlCO0VBQ2pCLG9CQUFvQjtFQUNwQixrQkFBa0I7RUFDbEIsbUJBQW1CO0VBQ25CLHFCQUFxQjtFQUNyQixtQkFBbUI7QUFDckI7O0FBRUE7RUFDRSx5QkFBeUI7QUFDM0IiLCJmaWxlIjoiYXBwLmNvbXBvbmVudC5jc3MiLCJzb3VyY2VzQ29udGVudCI6WyJtYWluIHtcclxuICB3aWR0aDogNzAlO1xyXG4gIG1hcmdpbjogYXV0bztcclxuICB0ZXh0LWFsaWduOiBjZW50ZXI7XHJcbn1cclxuXHJcbmJ1dHRvbiB7XHJcbiAgbWFyZ2luLXRvcDogMjBweDtcclxuICBiYWNrZ3JvdW5kLWNvbG9yOiAjMkQ4Q0ZGO1xyXG4gIGNvbG9yOiAjZmZmZmZmO1xyXG4gIHRleHQtZGVjb3JhdGlvbjogbm9uZTtcclxuICBwYWRkaW5nLXRvcDogMTBweDtcclxuICBwYWRkaW5nLWJvdHRvbTogMTBweDtcclxuICBwYWRkaW5nLWxlZnQ6IDQwcHg7XHJcbiAgcGFkZGluZy1yaWdodDogNDBweDtcclxuICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XHJcbiAgYm9yZGVyLXJhZGl1czogMTBweDtcclxufVxyXG5cclxuYnV0dG9uOmhvdmVyIHtcclxuICBiYWNrZ3JvdW5kLWNvbG9yOiAjMjY4MUYyO1xyXG59XHJcbiJdfQ== */"] });
 /*@__PURE__*/ (function () { _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵsetClassMetadata"](AppComponent, [{
         type: _angular_core__WEBPACK_IMPORTED_MODULE_0__["Component"],

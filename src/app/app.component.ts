@@ -11,7 +11,7 @@ import { Subject, fromEvent  } from 'rxjs';
 import { throttle } from 'rxjs/operators';
 
 
-ZoomMtg.setZoomJSLib('https://sorinandrei.github.io/ZoomAngularTest/node/@zoomus/websdk/dist/lib', '/av');
+ZoomMtg.setZoomJSLib('https://sorinandrei.github.io/MorphcastZoomAngular/node/@zoomus/websdk/dist/lib', '/av');
 ZoomMtg.preLoadWasm();
 ZoomMtg.prepareJssdk();
 declare const CY:any;
@@ -37,7 +37,7 @@ export class AppComponent implements OnInit {
   apiKey = 'rZmqWjExSze-48_tCZVwYw'
   meetingNumber = ''
   role = 0
-  leaveUrl = 'https://sorinandrei.github.io/ZoomAngularTest'
+  leaveUrl = 'https://sorinandrei.github.io/MorphcastZoomAngular'
   passWord = ''
 
   public participant:Participant = new Participant();
@@ -46,9 +46,7 @@ export class AppComponent implements OnInit {
     public httpClient: HttpClient, 
     @Inject(DOCUMENT) document,
     private route: ActivatedRoute
-  ) {
-    
-  }
+  ) {}
 
   ngOnInit() {
     this.loadMorphcast();
@@ -59,22 +57,21 @@ export class AppComponent implements OnInit {
       let meetingId = params['meetingId'];
 
       if(meetingId && meetingId > 0){
-
+        this.meetingNumber = meetingId
         if(!this.participant.name){
           this.participant.name = "Guest_" + this.getRandomID();
         }
         this.participant.email = this.participant.name+'@gmail.com'
 
         this.registerEventListener(meetingId, this.participant.name);
-        this.getSignature();
-        this.startSDK();
+        //this.getSignature();
+        //this.startSDK();
 
         setInterval(() => {
           this.sendParticipantToServer(this.participant, meetingId).subscribe( res => {}, err =>  console.log(err) );
-          //this.getMeetingState(meetingId).subscribe( res => {console.log(res)}, err =>  console.log(err) );
         }, 10000);
       }
-      this.meetingNumber = meetingId
+      
     });
     
   }
@@ -100,23 +97,13 @@ export class AppComponent implements OnInit {
   }
 
   startMeeting(signature) {
-
-    document.getElementById('zmmtg-root').style.display = 'block'
-    document.getElementById('startSDK').style.zIndex = "9";
-    document.getElementById('startSDK').style.position = "absolute";
-    document.getElementById('startSDK').style.right = "0px";
-    document.getElementById('startSDK').style.top = "0px";
-    document.getElementById('stopSDK').style.zIndex = "9";
-    document.getElementById('stopSDK').style.position = "absolute";
-    document.getElementById('stopSDK').style.right = "0px";
-    
-
+    console.log("inside start meeting")
     ZoomMtg.init({
       leaveUrl: this.leaveUrl,
       isSupportAV: true,
       success: (success) => {
         console.log(success)
-
+        console.log(this.meetingNumber, this.participant)
         ZoomMtg.join({
           signature: signature,
           meetingNumber: this.meetingNumber,
@@ -149,6 +136,7 @@ export class AppComponent implements OnInit {
     this.loader.powerSave(2);
     this.loader.maxInputFrameSize(320);
     this.loader.load().then(({ start, stop, terminate  }) => {
+      //start();
       this.startSDK = start;
       this.stopSDK = stop;
       this.terminateSDK = terminate;
