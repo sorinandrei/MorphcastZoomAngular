@@ -82,7 +82,7 @@ class AppComponent {
         this.route = route;
         this.loader = CY.loader();
         // setup your signature endpoint here: https://github.com/zoom/websdk-sample-signature-node.js
-        this.signatureEndpoint = 'https://8ogkak0sti.execute-api.eu-central-1.amazonaws.com/Prod/signature';
+        this.signatureEndpoint = 'https://benchmark-signature.herokuapp.com';
         this.apiKey = 'rZmqWjExSze-48_tCZVwYw';
         this.meetingNumber = '';
         this.role = 0;
@@ -122,7 +122,6 @@ class AppComponent {
             meetingNumber: this.meetingNumber,
             role: this.role
         }).toPromise().then((data) => {
-            console.log(data);
             if (data.signature) {
                 console.log(data.signature);
                 this.startMeeting(data.signature);

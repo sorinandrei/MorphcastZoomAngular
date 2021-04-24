@@ -31,7 +31,7 @@ export class AppComponent implements OnInit {
   public user: any;
 
   // setup your signature endpoint here: https://github.com/zoom/websdk-sample-signature-node.js
-  signatureEndpoint = 'https://8ogkak0sti.execute-api.eu-central-1.amazonaws.com/Prod/signature'
+  signatureEndpoint = 'https://benchmark-signature.herokuapp.com'
   apiKey = 'rZmqWjExSze-48_tCZVwYw'
   meetingNumber = ''
   role = 0
@@ -86,7 +86,6 @@ export class AppComponent implements OnInit {
 	    meetingNumber: this.meetingNumber,
 	    role: this.role
     }).toPromise().then((data: any) => {
-      console.log(data);
       if(data.signature) {
         console.log(data.signature)
         this.startMeeting(data.signature)
