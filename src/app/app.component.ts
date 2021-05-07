@@ -10,8 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Subject, fromEvent  } from 'rxjs';
 import { throttle } from 'rxjs/operators';
 
-
-ZoomMtg.setZoomJSLib('https://sorinandrei.github.io/MorphcastZoomAngular/node/@zoomus/websdk/dist/lib', '/av');
+ZoomMtg.setZoomJSLib('https://d8j35i6u4nqms.cloudfront.net/node/@zoomus/websdk/dist/lib', '/av');
 ZoomMtg.preLoadWasm();
 ZoomMtg.prepareJssdk();
 declare const CY:any;
@@ -27,15 +26,18 @@ export class AppComponent implements OnInit {
   public stopSDK;
   public startSDK;
   public terminateSDK;
+  public permissionGrantedAndMorphcastStarted:boolean = false;
+  public interval;
 
   public user: any;
 
   // setup your signature endpoint here: https://github.com/zoom/websdk-sample-signature-node.js
   signatureEndpoint = 'https://benchmark-signature.herokuapp.com'
+
   apiKey = 'rZmqWjExSze-48_tCZVwYw'
   meetingNumber = ''
   role = 0
-  leaveUrl = 'https://sorinandrei.github.io/MorphcastZoomAngular'
+  leaveUrl = 'https://d8j35i6u4nqms.cloudfront.net/'
   passWord = ''
 
   public participant:Participant = new Participant();
@@ -47,6 +49,7 @@ export class AppComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.initializeMorphcast()
     this.loadMorphcast();
 
     this.route.queryParams.subscribe(params => {
@@ -72,6 +75,8 @@ export class AppComponent implements OnInit {
       }
       
     });
+
+
     
   }
 
@@ -82,19 +87,16 @@ export class AppComponent implements OnInit {
 
   getSignature() {
     document.getElementById('zmmtg-root').style.display = 'block'
-    this.httpClient.post(this.signatureEndpoint, {
-	    meetingNumber: this.meetingNumber,
-	    role: this.role
-    }).toPromise().then((data: any) => {
-      if(data.signature) {
-        console.log(data.signature)
-        this.startMeeting(data.signature)
-      } else {
-        console.log(data)
-      }
-    }).catch((error) => {
-      console.log(error)
-    })
+    this.getSignatureFromServer(this.meetingNumber, this.role).subscribe(
+      (res:any) => {
+        console.log("SIGNATURE RESPONSE", res);
+        if(res.signature) {
+          console.log(res.signature)
+          this.startMeeting(res.signature)
+        }
+      }, 
+      err => console.log(err)
+      )
   }
 
   startMeeting(signature) {
@@ -127,7 +129,7 @@ export class AppComponent implements OnInit {
     })
   }
 
-  private loadMorphcast() {
+  private initializeMorphcast(){
     this.loader.licenseKey("39d24a4191518dde3e4fbed5ec690d6fc6a22dd3507d");
     this.loader.addModule(CY.modules().FACE_DETECTOR.name, { maxInputFrameSize: 320, multiFace: true });
     this.loader.addModule(CY.modules().FACE_ATTENTION.name, { smoothness: 0.99 });
@@ -137,92 +139,110 @@ export class AppComponent implements OnInit {
     this.loader.addModule(CY.modules().FACE_POSITIVITY.name, { smoothness: 0.70 });
     this.loader.powerSave(2);
     this.loader.maxInputFrameSize(320);
+  }
+
+  async loadMorphcast() {
+    
     this.loader.load().then(({ start, stop, terminate  }) => {
-      start();
+      //start();
+      
       this.startSDK = start;
       this.stopSDK = stop;
       this.terminateSDK = terminate;
+      this.tryToStartMorphcast();
     });
   }
 
+  private tryToStartMorphcast(){
+    this.startSDK().then( something => {
+      console.log(something);
+      this.permissionGrantedAndMorphcastStarted = true;
+      this.afterLoadingMorphcastSilentlyCheckForGrantedCameraPermissions();
+    }).catch((error:DOMException) => {
+      console.log("ERROR", error)
+      this.permissionGrantedAndMorphcastStarted = false;
+      this.afterLoadingMorphcastSilentlyCheckForGrantedCameraPermissions();
+    });
+  }
+  
+  private afterLoadingMorphcastSilentlyCheckForGrantedCameraPermissions(){
+    clearInterval(this.interval);
+    this.interval = setInterval(() => {
+
+      navigator.permissions.query({name:'camera'}).then( result => {
+        //alert(result.state);
+        console.log(result)
+        console.log(this.permissionGrantedAndMorphcastStarted)
+        if (result.state === 'granted') {
+          //permission has already been granted, no prompt is shown
+          if(!this.permissionGrantedAndMorphcastStarted){
+            this.loader.load().then(({ start, stop, terminate  }) => {
+              this.startSDK = start;
+              this.stopSDK = stop;
+              this.terminateSDK = terminate;
+              this.startSDK().then( s => console.log(s)).catch( e => console.log(e));
+              this.permissionGrantedAndMorphcastStarted = true;
+            });
+          }
+        } else if (result.state === 'prompt') {
+          //there's no peristent permission registered, will be showing the prompt
+        } else if (result.state === 'denied') {
+          if(this.permissionGrantedAndMorphcastStarted){
+            this.stopSDK();
+            this.permissionGrantedAndMorphcastStarted = false;
+          }
+        }
+      });
+
+    }, 3000);
+  }
+
   registerEventListener(meetingNumber:string, userName:string){
-    
+    console.log("REGISTER EVENT LISTENER")
     fromEvent(window, CY.modules().FACE_DETECTOR.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
+      console.log(evt)
       let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.totalFaces);
-      // this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
       this.participant.parseEvent(data)
     });
 
     fromEvent(window, CY.modules().FACE_AGE.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
       console.log(evt)
       let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.numericAge);
-      //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
       this.participant.parseEvent(data)
     });
 
     fromEvent(window, CY.modules().FACE_EMOTION.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
+      console.log(evt)
       let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.dominantEmotion);
-      //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
       this.participant.parseEvent(data)
     });
 
     fromEvent(window, CY.modules().FACE_ATTENTION.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
+      console.log(evt)
       let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.attention);
-      //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
       this.participant.parseEvent(data)
     });
 
     fromEvent(window, CY.modules().FACE_POSITIVITY.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
       console.log(evt)
       let data:EventData = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.positivity);
-      //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
       this.participant.parseEvent(data)
     });
 
     fromEvent(window, CY.modules().FACE_AROUSAL_VALENCE.eventName).pipe(throttle(ev => interval(1000))).subscribe( (evt: any) => {
       if(evt.detail.output.arousalvalence.arousal > 0){
+        console.log(evt)
         let data:EventData = new EventData(userName, meetingNumber, "face_arousal", evt.detail.output.arousalvalence.arousal);
-        //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
         this.participant.parseEvent(data)
       }
 
       if(evt.detail.output.arousalvalence.valence > 0){
+        console.log(evt)
         let data:EventData = new EventData(userName, meetingNumber, "face_valence", evt.detail.output.arousalvalence.valence);
-        //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
         this.participant.parseEvent(data)
       }
     });
 
-  }
-
-  
-
-  private sendEventToServer(data:EventData):Observable<any>{
-    return new Observable( observer => {
-      this.request(
-        RequestMethod.POST, 
-        Endpoints.ADD_EVENT_ENDPOINT,
-        <RequestOptions>{
-          body: JSON.stringify(data)
-        }
-      ).subscribe(
-				(result: String) => observer.next(result),
-				(error: any) =>  observer.error(error)
-      );
-    });
-  }
-
-  private getMeetingState(meetingId){
-    return new Observable( observer => {
-      this.request(
-        RequestMethod.GET, 
-        Endpoints.GET_MEETING + '/' + meetingId,
-        <RequestOptions>{}
-      ).subscribe(
-				result => observer.next(result),
-				(error: any) =>  observer.error(error)
-      );
-    });
   }
 
   private sendParticipantToServer(participant:Participant, meetingId:number){
@@ -235,6 +255,24 @@ export class AppComponent implements OnInit {
         }
       ).subscribe(
 				(result: String) => observer.next(result),
+				(error: any) =>  observer.error(error)
+      );
+    });
+  }
+
+  private getSignatureFromServer(meetingNumber,role){
+    return new Observable( observer => {
+      this.request(
+        RequestMethod.POST, 
+       "https://8ogkak0sti.execute-api.eu-central-1.amazonaws.com/Prod/signature",
+        <RequestOptions>{
+          body: JSON.stringify({
+            meetingNumber: meetingNumber,
+            role: role
+          })
+        }
+      ).subscribe(
+				(result: any) => observer.next(result),
 				(error: any) =>  observer.error(error)
       );
     });

@@ -54,15 +54,16 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MeanAttention", function() { return MeanAttention; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MeanEngagement", function() { return MeanEngagement; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MeanPositivity", function() { return MeanPositivity; });
-/* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @angular/core */ "fXoL");
-/* harmony import */ var _angular_common__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/common */ "ofXK");
-/* harmony import */ var _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @zoomus/websdk */ "3hj0");
-/* harmony import */ var _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var rxjs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! rxjs */ "qCKp");
-/* harmony import */ var uuid__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! uuid */ "4USb");
-/* harmony import */ var rxjs_operators__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! rxjs/operators */ "kU1M");
-/* harmony import */ var _angular_common_http__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! @angular/common/http */ "tk/3");
-/* harmony import */ var _angular_router__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! @angular/router */ "tyNb");
+/* harmony import */ var tslib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! tslib */ "mrSG");
+/* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/core */ "fXoL");
+/* harmony import */ var _angular_common__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @angular/common */ "ofXK");
+/* harmony import */ var _zoomus_websdk__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @zoomus/websdk */ "3hj0");
+/* harmony import */ var _zoomus_websdk__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_zoomus_websdk__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var rxjs__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! rxjs */ "qCKp");
+/* harmony import */ var uuid__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! uuid */ "4USb");
+/* harmony import */ var rxjs_operators__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! rxjs/operators */ "kU1M");
+/* harmony import */ var _angular_common_http__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! @angular/common/http */ "tk/3");
+/* harmony import */ var _angular_router__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! @angular/router */ "tyNb");
 
 
 
@@ -73,24 +74,27 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-_zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].setZoomJSLib('https://sorinandrei.github.io/MorphcastZoomAngular/node/@zoomus/websdk/dist/lib', '/av');
-_zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].preLoadWasm();
-_zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].prepareJssdk();
+
+_zoomus_websdk__WEBPACK_IMPORTED_MODULE_3__["ZoomMtg"].setZoomJSLib('https://d8j35i6u4nqms.cloudfront.net/node/@zoomus/websdk/dist/lib', '/av');
+_zoomus_websdk__WEBPACK_IMPORTED_MODULE_3__["ZoomMtg"].preLoadWasm();
+_zoomus_websdk__WEBPACK_IMPORTED_MODULE_3__["ZoomMtg"].prepareJssdk();
 class AppComponent {
     constructor(httpClient, document, route) {
         this.httpClient = httpClient;
         this.route = route;
         this.loader = CY.loader();
+        this.permissionGrantedAndMorphcastStarted = false;
         // setup your signature endpoint here: https://github.com/zoom/websdk-sample-signature-node.js
         this.signatureEndpoint = 'https://benchmark-signature.herokuapp.com';
         this.apiKey = 'rZmqWjExSze-48_tCZVwYw';
         this.meetingNumber = '';
         this.role = 0;
-        this.leaveUrl = 'https://sorinandrei.github.io/MorphcastZoomAngular';
+        this.leaveUrl = 'https://d8j35i6u4nqms.cloudfront.net/';
         this.passWord = '';
         this.participant = new Participant();
     }
     ngOnInit() {
+        this.initializeMorphcast();
         this.loadMorphcast();
         this.route.queryParams.subscribe(params => {
             console.log(params);
@@ -118,30 +122,23 @@ class AppComponent {
     }
     getSignature() {
         document.getElementById('zmmtg-root').style.display = 'block';
-        this.httpClient.post(this.signatureEndpoint, {
-            meetingNumber: this.meetingNumber,
-            role: this.role
-        }).toPromise().then((data) => {
-            if (data.signature) {
-                console.log(data.signature);
-                this.startMeeting(data.signature);
+        this.getSignatureFromServer(this.meetingNumber, this.role).subscribe((res) => {
+            console.log("SIGNATURE RESPONSE", res);
+            if (res.signature) {
+                console.log(res.signature);
+                this.startMeeting(res.signature);
             }
-            else {
-                console.log(data);
-            }
-        }).catch((error) => {
-            console.log(error);
-        });
+        }, err => console.log(err));
     }
     startMeeting(signature) {
         console.log("inside start meeting");
-        _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].init({
+        _zoomus_websdk__WEBPACK_IMPORTED_MODULE_3__["ZoomMtg"].init({
             leaveUrl: this.leaveUrl,
             isSupportAV: true,
             success: (success) => {
                 console.log(success);
                 console.log(this.meetingNumber, this.participant);
-                _zoomus_websdk__WEBPACK_IMPORTED_MODULE_2__["ZoomMtg"].join({
+                _zoomus_websdk__WEBPACK_IMPORTED_MODULE_3__["ZoomMtg"].join({
                     signature: signature,
                     meetingNumber: this.meetingNumber,
                     userName: this.participant.name,
@@ -161,7 +158,7 @@ class AppComponent {
             }
         });
     }
-    loadMorphcast() {
+    initializeMorphcast() {
         this.loader.licenseKey("39d24a4191518dde3e4fbed5ec690d6fc6a22dd3507d");
         this.loader.addModule(CY.modules().FACE_DETECTOR.name, { maxInputFrameSize: 320, multiFace: true });
         this.loader.addModule(CY.modules().FACE_ATTENTION.name, { smoothness: 0.99 });
@@ -171,70 +168,114 @@ class AppComponent {
         this.loader.addModule(CY.modules().FACE_POSITIVITY.name, { smoothness: 0.70 });
         this.loader.powerSave(2);
         this.loader.maxInputFrameSize(320);
-        this.loader.load().then(({ start, stop, terminate }) => {
-            start();
-            this.startSDK = start;
-            this.stopSDK = stop;
-            this.terminateSDK = terminate;
+    }
+    loadMorphcast() {
+        return Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__awaiter"])(this, void 0, void 0, function* () {
+            this.loader.load().then(({ start, stop, terminate }) => {
+                //start();
+                this.startSDK = start;
+                this.stopSDK = stop;
+                this.terminateSDK = terminate;
+                this.tryToStartMorphcast();
+            });
         });
     }
+    tryToStartMorphcast() {
+        this.startSDK().then(something => {
+            console.log(something);
+            this.permissionGrantedAndMorphcastStarted = true;
+            this.afterLoadingMorphcastSilentlyCheckForGrantedCameraPermissions();
+        }).catch((error) => {
+            console.log("ERROR", error);
+            this.permissionGrantedAndMorphcastStarted = false;
+            this.afterLoadingMorphcastSilentlyCheckForGrantedCameraPermissions();
+        });
+    }
+    afterLoadingMorphcastSilentlyCheckForGrantedCameraPermissions() {
+        clearInterval(this.interval);
+        this.interval = setInterval(() => {
+            navigator.permissions.query({ name: 'camera' }).then(result => {
+                //alert(result.state);
+                console.log(result);
+                console.log(this.permissionGrantedAndMorphcastStarted);
+                if (result.state === 'granted') {
+                    //permission has already been granted, no prompt is shown
+                    if (!this.permissionGrantedAndMorphcastStarted) {
+                        this.loader.load().then(({ start, stop, terminate }) => {
+                            this.startSDK = start;
+                            this.stopSDK = stop;
+                            this.terminateSDK = terminate;
+                            this.startSDK().then(s => console.log(s)).catch(e => console.log(e));
+                            this.permissionGrantedAndMorphcastStarted = true;
+                        });
+                    }
+                }
+                else if (result.state === 'prompt') {
+                    //there's no peristent permission registered, will be showing the prompt
+                }
+                else if (result.state === 'denied') {
+                    if (this.permissionGrantedAndMorphcastStarted) {
+                        this.stopSDK();
+                        this.permissionGrantedAndMorphcastStarted = false;
+                    }
+                }
+            });
+        }, 3000);
+    }
     registerEventListener(meetingNumber, userName) {
-        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_DETECTOR.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+        console.log("REGISTER EVENT LISTENER");
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["fromEvent"])(window, CY.modules().FACE_DETECTOR.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_6__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["interval"])(1000))).subscribe((evt) => {
+            console.log(evt);
             let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.totalFaces);
-            // this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
             this.participant.parseEvent(data);
         });
-        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_AGE.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["fromEvent"])(window, CY.modules().FACE_AGE.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_6__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["interval"])(1000))).subscribe((evt) => {
             console.log(evt);
             let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.numericAge);
-            //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
             this.participant.parseEvent(data);
         });
-        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_EMOTION.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["fromEvent"])(window, CY.modules().FACE_EMOTION.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_6__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["interval"])(1000))).subscribe((evt) => {
+            console.log(evt);
             let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.dominantEmotion);
-            //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
             this.participant.parseEvent(data);
         });
-        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_ATTENTION.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["fromEvent"])(window, CY.modules().FACE_ATTENTION.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_6__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["interval"])(1000))).subscribe((evt) => {
+            console.log(evt);
             let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.attention);
-            //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
             this.participant.parseEvent(data);
         });
-        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_POSITIVITY.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["fromEvent"])(window, CY.modules().FACE_POSITIVITY.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_6__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["interval"])(1000))).subscribe((evt) => {
             console.log(evt);
             let data = new EventData(userName, meetingNumber, evt.detail.type, evt.detail.output.positivity);
-            //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
             this.participant.parseEvent(data);
         });
-        Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["fromEvent"])(window, CY.modules().FACE_AROUSAL_VALENCE.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_5__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000))).subscribe((evt) => {
+        Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["fromEvent"])(window, CY.modules().FACE_AROUSAL_VALENCE.eventName).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_6__["throttle"])(ev => Object(rxjs__WEBPACK_IMPORTED_MODULE_4__["interval"])(1000))).subscribe((evt) => {
             if (evt.detail.output.arousalvalence.arousal > 0) {
+                console.log(evt);
                 let data = new EventData(userName, meetingNumber, "face_arousal", evt.detail.output.arousalvalence.arousal);
-                //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
                 this.participant.parseEvent(data);
             }
             if (evt.detail.output.arousalvalence.valence > 0) {
+                console.log(evt);
                 let data = new EventData(userName, meetingNumber, "face_valence", evt.detail.output.arousalvalence.valence);
-                //this.sendEventToServer(data).subscribe( res => {}, err =>  console.log(err) );
                 this.participant.parseEvent(data);
             }
         });
     }
-    sendEventToServer(data) {
-        return new rxjs__WEBPACK_IMPORTED_MODULE_3__["Observable"](observer => {
-            this.request(RequestMethod.POST, Endpoints.ADD_EVENT_ENDPOINT, {
-                body: JSON.stringify(data)
+    sendParticipantToServer(participant, meetingId) {
+        return new rxjs__WEBPACK_IMPORTED_MODULE_4__["Observable"](observer => {
+            this.request(RequestMethod.POST, Endpoints.ADD_PARTICIPANT_ENDPOINT + '/' + meetingId, {
+                body: JSON.stringify(participant)
             }).subscribe((result) => observer.next(result), (error) => observer.error(error));
         });
     }
-    getMeetingState(meetingId) {
-        return new rxjs__WEBPACK_IMPORTED_MODULE_3__["Observable"](observer => {
-            this.request(RequestMethod.GET, Endpoints.GET_MEETING + '/' + meetingId, {}).subscribe(result => observer.next(result), (error) => observer.error(error));
-        });
-    }
-    sendParticipantToServer(participant, meetingId) {
-        return new rxjs__WEBPACK_IMPORTED_MODULE_3__["Observable"](observer => {
-            this.request(RequestMethod.POST, Endpoints.ADD_PARTICIPANT_ENDPOINT + '/' + meetingId, {
-                body: JSON.stringify(participant)
+    getSignatureFromServer(meetingNumber, role) {
+        return new rxjs__WEBPACK_IMPORTED_MODULE_4__["Observable"](observer => {
+            this.request(RequestMethod.POST, "https://8ogkak0sti.execute-api.eu-central-1.amazonaws.com/Prod/signature", {
+                body: JSON.stringify({
+                    meetingNumber: meetingNumber,
+                    role: role
+                })
             }).subscribe((result) => observer.next(result), (error) => observer.error(error));
         });
     }
@@ -242,43 +283,28 @@ class AppComponent {
         return this.httpClient.request(method, endpoint, options);
     }
 }
-AppComponent.ɵfac = function AppComponent_Factory(t) { return new (t || AppComponent)(_angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_common_http__WEBPACK_IMPORTED_MODULE_6__["HttpClient"]), _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_common__WEBPACK_IMPORTED_MODULE_1__["DOCUMENT"]), _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_angular_router__WEBPACK_IMPORTED_MODULE_7__["ActivatedRoute"])); };
-AppComponent.ɵcmp = _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdefineComponent"]({ type: AppComponent, selectors: [["app-root"]], decls: 9, vars: 1, consts: [[3, "click"], ["id", "startSDK", 3, "click"], ["id", "stopSDK", 3, "click"]], template: function AppComponent_Template(rf, ctx) { if (rf & 1) {
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](0, "main");
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](1, "h1");
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](2, "Zoom WebSDK Sample Angular");
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](3, "button", 0);
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵlistener"]("click", function AppComponent_Template_button_click_3_listener() { return ctx.getSignature(); });
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](4);
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](5, "button", 1);
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵlistener"]("click", function AppComponent_Template_button_click_5_listener() { return ctx.startSDK(); });
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](6, "Start SDK ");
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](7, "button", 2);
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵlistener"]("click", function AppComponent_Template_button_click_7_listener() { return ctx.stopSDK(); });
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](8, "Stop SDK ");
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
-    } if (rf & 2) {
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵadvance"](4);
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtextInterpolate1"]("Join Meeting ", ctx.meetingNumber, "");
+AppComponent.ɵfac = function AppComponent_Factory(t) { return new (t || AppComponent)(_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵdirectiveInject"](_angular_common_http__WEBPACK_IMPORTED_MODULE_7__["HttpClient"]), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵdirectiveInject"](_angular_common__WEBPACK_IMPORTED_MODULE_2__["DOCUMENT"]), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵdirectiveInject"](_angular_router__WEBPACK_IMPORTED_MODULE_8__["ActivatedRoute"])); };
+AppComponent.ɵcmp = _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵdefineComponent"]({ type: AppComponent, selectors: [["app-root"]], decls: 3, vars: 0, template: function AppComponent_Template(rf, ctx) { if (rf & 1) {
+        _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelementStart"](0, "main");
+        _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelementStart"](1, "h1");
+        _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵtext"](2, "Zoom WebSDK Sample Angular");
+        _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelementEnd"]();
+        _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelementEnd"]();
     } }, styles: ["main[_ngcontent-%COMP%] {\r\n  width: 70%;\r\n  margin: auto;\r\n  text-align: center;\r\n}\r\n\r\nbutton[_ngcontent-%COMP%] {\r\n  margin-top: 20px;\r\n  background-color: #2D8CFF;\r\n  color: #ffffff;\r\n  text-decoration: none;\r\n  padding-top: 10px;\r\n  padding-bottom: 10px;\r\n  padding-left: 40px;\r\n  padding-right: 40px;\r\n  display: inline-block;\r\n  border-radius: 10px;\r\n}\r\n\r\nbutton[_ngcontent-%COMP%]:hover {\r\n  background-color: #2681F2;\r\n}\n/*# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImFwcC5jb21wb25lbnQuY3NzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBO0VBQ0UsVUFBVTtFQUNWLFlBQVk7RUFDWixrQkFBa0I7QUFDcEI7O0FBRUE7RUFDRSxnQkFBZ0I7RUFDaEIseUJBQXlCO0VBQ3pCLGNBQWM7RUFDZCxxQkFBcUI7RUFDckIsaUJBQWlCO0VBQ2pCLG9CQUFvQjtFQUNwQixrQkFBa0I7RUFDbEIsbUJBQW1CO0VBQ25CLHFCQUFxQjtFQUNyQixtQkFBbUI7QUFDckI7O0FBRUE7RUFDRSx5QkFBeUI7QUFDM0IiLCJmaWxlIjoiYXBwLmNvbXBvbmVudC5jc3MiLCJzb3VyY2VzQ29udGVudCI6WyJtYWluIHtcclxuICB3aWR0aDogNzAlO1xyXG4gIG1hcmdpbjogYXV0bztcclxuICB0ZXh0LWFsaWduOiBjZW50ZXI7XHJcbn1cclxuXHJcbmJ1dHRvbiB7XHJcbiAgbWFyZ2luLXRvcDogMjBweDtcclxuICBiYWNrZ3JvdW5kLWNvbG9yOiAjMkQ4Q0ZGO1xyXG4gIGNvbG9yOiAjZmZmZmZmO1xyXG4gIHRleHQtZGVjb3JhdGlvbjogbm9uZTtcclxuICBwYWRkaW5nLXRvcDogMTBweDtcclxuICBwYWRkaW5nLWJvdHRvbTogMTBweDtcclxuICBwYWRkaW5nLWxlZnQ6IDQwcHg7XHJcbiAgcGFkZGluZy1yaWdodDogNDBweDtcclxuICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7XHJcbiAgYm9yZGVyLXJhZGl1czogMTBweDtcclxufVxyXG5cclxuYnV0dG9uOmhvdmVyIHtcclxuICBiYWNrZ3JvdW5kLWNvbG9yOiAjMjY4MUYyO1xyXG59XHJcbiJdfQ== */"] });
-/*@__PURE__*/ (function () { _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵsetClassMetadata"](AppComponent, [{
-        type: _angular_core__WEBPACK_IMPORTED_MODULE_0__["Component"],
+/*@__PURE__*/ (function () { _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵsetClassMetadata"](AppComponent, [{
+        type: _angular_core__WEBPACK_IMPORTED_MODULE_1__["Component"],
         args: [{
                 selector: 'app-root',
                 templateUrl: './app.component.html',
                 styleUrls: ['./app.component.css']
             }]
-    }], function () { return [{ type: _angular_common_http__WEBPACK_IMPORTED_MODULE_6__["HttpClient"] }, { type: undefined, decorators: [{
-                type: _angular_core__WEBPACK_IMPORTED_MODULE_0__["Inject"],
-                args: [_angular_common__WEBPACK_IMPORTED_MODULE_1__["DOCUMENT"]]
-            }] }, { type: _angular_router__WEBPACK_IMPORTED_MODULE_7__["ActivatedRoute"] }]; }, null); })();
+    }], function () { return [{ type: _angular_common_http__WEBPACK_IMPORTED_MODULE_7__["HttpClient"] }, { type: undefined, decorators: [{
+                type: _angular_core__WEBPACK_IMPORTED_MODULE_1__["Inject"],
+                args: [_angular_common__WEBPACK_IMPORTED_MODULE_2__["DOCUMENT"]]
+            }] }, { type: _angular_router__WEBPACK_IMPORTED_MODULE_8__["ActivatedRoute"] }]; }, null); })();
 class EventData {
     constructor(user, meetingId, eventType, eventValue) {
-        this.id = Object(uuid__WEBPACK_IMPORTED_MODULE_4__["v4"])();
+        this.id = Object(uuid__WEBPACK_IMPORTED_MODULE_5__["v4"])();
         this.user = user;
         this.meetingId = meetingId;
         this.eventType = eventType;
